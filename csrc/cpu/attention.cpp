@@ -269,6 +269,8 @@ struct paged_attention_v1_impl {
       const float* __restrict__ alibi_slopes,  // [num_heads]
       const int q_stride, const int kv_block_stride, const int kv_head_stride,
       const int num_seqs, const int num_heads) {
+    // print hello-world to check for re-compilation
+    std::cout << "\nHello, World! paged_attention_v1_impl is being compiled.\n" << std::endl;
     constexpr int x = 16 / sizeof(scalar_t);
     const int num_queries_per_kv = num_heads / num_kv_heads;
 
