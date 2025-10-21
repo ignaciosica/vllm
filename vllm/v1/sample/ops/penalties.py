@@ -3,7 +3,7 @@
 
 import torch, nvtx, time, numpy, os
 from vllm.model_executor.layers.utils import apply_penalties
-from vllm.utils import make_tensor_with_pad
+from vllm.utils.torch_utils import make_tensor_with_pad
 
 times = numpy.array([])
 
