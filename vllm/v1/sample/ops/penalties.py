@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import torch, nvtx, time, numpy
+import torch, nvtx, time, numpy, os
 from vllm.model_executor.layers.utils import apply_penalties
 from vllm.utils import make_tensor_with_pad
 
 times = numpy.array([])
 
+DEBUG = int(os.getenv("DEBUG", 0))
 
 @nvtx.annotate(message="apply_all_penalties", color="blue")
 def apply_all_penalties(
@@ -32,13 +33,14 @@ def apply_all_penalties(
         frequency_penalties,
         repetition_penalties,
     )
-    times = numpy.append(times, time.perf_counter() - start)
-    if len(times) % 64 == 0:
-        p90, p95, p99 = numpy.percentile(times, [90, 95, 99])
-        print(
-            f"penalties mean ({numpy.mean(times):.4}s) | "
-            f"p90 ({p90:.4}) p95 ({p95:.4}) p99 ({p99:.4})"
-        )
+    if DEBUG:
+        times = numpy.append(times, time.perf_counter() - start)
+        if len(times) % 64 == 0:
+            p90, p95, p99 = numpy.percentile(times, [90, 95, 99])
+            print(
+                f"penalties mean ({numpy.mean(times):.4}s) | "
+                f"p90 ({p90:.4}) p95 ({p95:.4}) p99 ({p99:.4})"
+            )
     return ret
 
 
