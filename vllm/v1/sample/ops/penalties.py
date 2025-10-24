@@ -17,6 +17,7 @@ def apply_all_penalties(
     frequency_penalties: torch.Tensor,
     repetition_penalties: torch.Tensor,
     output_token_ids: list[list[int]],
+    token_ids: torch.Tensor,
 ) -> torch.Tensor:
     """
     Applies presence, frequency and repetition penalties to the logits.
@@ -24,11 +25,16 @@ def apply_all_penalties(
     global times
     start = time.perf_counter()
     _, vocab_size = logits.shape
-    output_tokens_t = _convert_to_tensors(output_token_ids, vocab_size, logits.device)
+    output_tokens_tensor = token_ids[:prompt_token_ids.shape[0]].clone().to(logits.device, dtype=torch.int64, non_blocking=True)
+    output_tokens_tensor[:prompt_token_ids.shape[0], :prompt_token_ids.shape[1]] -= prompt_token_ids
+    output_tokens_tensor[output_tokens_tensor == 0] = vocab_size
+    output_tokens_tensor = output_tokens_tensor.abs()
+    # assert output_tokens_tensor >= 0
+    # output_tokens_t = _convert_to_tensors(output_token_ids, vocab_size, logits.device)
     ret = apply_penalties(
         logits,
         prompt_token_ids,
-        output_tokens_t,
+        output_tokens_tensor,
         presence_penalties,
         frequency_penalties,
         repetition_penalties,
