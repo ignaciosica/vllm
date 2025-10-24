@@ -28,8 +28,8 @@ def apply_all_penalties(
     _, vocab_size = logits.shape
     reqs, reqs_len = prompt_token_ids.shape
     max_len = max(map(len, output_token_ids), default=0) + reqs_len
-    pinned_output_tokens_ids = torch.zeros((reqs, max_len), device="cpu", dtype=torch.int64, pin_memory=True)
-    pinned_output_tokens_ids.copy_(token_ids[:reqs, :max_len], non_blocking=True)
+    pinned_output_tokens_ids = torch.empty((reqs, max_len), device="cpu", dtype=torch.int64, pin_memory=True)
+    pinned_output_tokens_ids.copy_(token_ids[:reqs, :max_len])
     output_token_ids = pinned_output_tokens_ids.to(device=logits.device, dtype=torch.int64, non_blocking=True)
     output_token_ids[:, :reqs_len].sub_(prompt_token_ids).abs_()
     output_token_ids.masked_fill_(output_token_ids.eq(0), vocab_size)
