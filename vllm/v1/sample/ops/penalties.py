@@ -9,6 +9,7 @@ times = numpy.array([])
 
 DEBUG = int(os.getenv("DEBUG", 0))
 
+
 @nvtx.annotate(message="apply_all_penalties", color="blue")
 def apply_all_penalties(
     logits: torch.Tensor,
@@ -25,16 +26,17 @@ def apply_all_penalties(
     global times
     start = time.perf_counter()
     _, vocab_size = logits.shape
-    output_tokens_tensor = token_ids[:prompt_token_ids.shape[0]].clone().to(logits.device, dtype=torch.int64, non_blocking=True)
-    output_tokens_tensor[:prompt_token_ids.shape[0], :prompt_token_ids.shape[1]] -= prompt_token_ids
-    output_tokens_tensor[output_tokens_tensor == 0] = vocab_size
-    output_tokens_tensor = output_tokens_tensor.abs()
-    # assert output_tokens_tensor >= 0
-    # output_tokens_t = _convert_to_tensors(output_token_ids, vocab_size, logits.device)
+    reqs, reqs_len = prompt_token_ids.shape
+    max_len = max(map(len, output_token_ids), default=0) + reqs_len
+    pinned_output_tokens_ids = torch.zeros((reqs, max_len), device="cpu", dtype=torch.int64, pin_memory=True)
+    pinned_output_tokens_ids.copy_(token_ids[:reqs, :max_len], non_blocking=True)
+    output_token_ids = pinned_output_tokens_ids.to(device=logits.device, dtype=torch.int64, non_blocking=True)
+    output_token_ids[:, :reqs_len].sub_(prompt_token_ids).abs_()
+    output_token_ids.masked_fill_(output_token_ids.eq(0), vocab_size)
     ret = apply_penalties(
         logits,
         prompt_token_ids,
-        output_tokens_tensor,
+        output_token_ids,
         presence_penalties,
         frequency_penalties,
         repetition_penalties,
