@@ -910,6 +910,7 @@ class InputBatch:
 
         assert self.prev_req_id_to_index is not None
         sampled_token_ids = None
+        row_idx, col_idx, val_buf = [], [], []
         for index, req_id in enumerate(self.req_ids):
             prev_index = self.prev_req_id_to_index.get(req_id)
             if prev_index is None:
@@ -925,8 +926,19 @@ class InputBatch:
                 sampled_token_ids = self.sampled_token_ids_cpu.squeeze(-1).tolist()
             # Replace placeholder token id with actual sampled id.
             req_output_token_ids[-1] = sampled_token_ids[prev_index]
-            token_index = self.num_computed_tokens_cpu[index]
-            self.token_ids_cpu_tensor[index, token_index] = sampled_token_ids[prev_index]
+
+            row_idx.append(index)
+            col_idx.append(self.num_computed_tokens_cpu[index])
+            val_buf.append(sampled_token_ids[prev_index])
+
+        if val_buf:
+            rows = torch.as_tensor(row_idx, device=self.token_ids_cpu_tensor.device, dtype=torch.long)
+            cols = torch.as_tensor(col_idx, device=self.token_ids_cpu_tensor.device, dtype=torch.long)
+            vals = torch.as_tensor(val_buf, device=self.token_ids_cpu_tensor.device, dtype=self.token_ids_cpu_tensor.dtype)
+            self.token_ids_cpu_tensor[rows, cols] = vals
+            # is there a way of vectorizing this copy?
+            # token_index = self.num_computed_tokens_cpu[index]
+            # self.token_ids_cpu_tensor[index, token_index] = sampled_token_ids[prev_index]
 
     @property
     def num_reqs(self) -> int:
