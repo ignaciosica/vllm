@@ -925,13 +925,8 @@ class InputBatch:
                 sampled_token_ids = self.sampled_token_ids_cpu.squeeze(-1).tolist()
             # Replace placeholder token id with actual sampled id.
             req_output_token_ids[-1] = sampled_token_ids[prev_index]
-            if index != prev_index:
-                print(f"{index=} != {prev_index=}")
             token_index = self.num_computed_tokens_cpu[index]
             self.token_ids_cpu_tensor[index, token_index] = sampled_token_ids[prev_index]
-            if index != prev_index:
-                self.token_ids_cpu_tensor[prev_index] = 0
-            # self.token_ids_cpu_tensor[prev_index, token_index] = sampled_token_ids[prev_index]
 
     @property
     def num_reqs(self) -> int:

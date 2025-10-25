@@ -27,29 +27,22 @@ def apply_all_penalties(
     start = time.perf_counter()
     _, vocab_size = logits.shape
     reqs, reqs_len = prompt_token_ids.shape
-    out_reqs = len(output_token_ids)
-    assert reqs == out_reqs
-    for req in range(reqs):
-        elems = torch.sum(prompt_token_ids[req] != 156940)
-        if not torch.equal(prompt_token_ids[req, :elems], token_ids[req, :elems].to("cuda", torch.int64)):
-            print("Warning: prompt and output mismatch!", prompt_token_ids[req, :elems], token_ids[req, :elems].to("cuda"))
+
     max_len = max(map(len, output_token_ids), default=0) + reqs_len
     pinned_output_tokens_ids = torch.empty((reqs, max_len), device="cpu", dtype=torch.int64, pin_memory=True)
     pinned_output_tokens_ids.copy_(token_ids[:reqs, :max_len])
     output_token_ids_t = pinned_output_tokens_ids.to(device=logits.device, dtype=torch.int64, non_blocking=True)
     masked = prompt_token_ids.masked_fill(prompt_token_ids.eq(156940), 0)
     output_token_ids_t[:, :reqs_len].sub_(masked).abs_()
-    
-    output_lens = torch.tensor([len(x) for x in output_token_ids]).cuda()
-    prompt_lens = torch.sum(prompt_token_ids != 156940, 1).cuda()
-    for req in range(reqs):
-        output_token_ids_t[req , output_lens[req] + prompt_lens[req] : ] = 0
+
+    output_lens = torch.tensor([len(x) for x in output_token_ids], pin_memory=True).to(prompt_token_ids.device, non_blocking=True)
+    prompt_lens = (prompt_token_ids != 156940).sum(1)
+    offsets = output_lens + prompt_lens
+    idx = torch.arange(output_token_ids_t.size(1), device=output_token_ids_t.device).unsqueeze(0)
+    mask = idx >= offsets.unsqueeze(1)
+    output_token_ids_t[mask] = 0
 
     output_token_ids_t.masked_fill_(output_token_ids_t.eq(0), vocab_size)
-    if (output_token_ids_t == -1).any():
-        print("Warning: tensor contains placeholder -1")
-    if (output_token_ids_t < 0).any():
-        print("Warning: tensor contains negative values")
     ret = apply_penalties(
         logits,
         prompt_token_ids,
