@@ -53,7 +53,7 @@ def apply_all_penalties(
     )
     if DEBUG:
         times = numpy.append(times, time.perf_counter() - start)
-        if len(times) % 64 == 0:
+        if len(times) % 512 == 0:
             p90, p95, p99 = numpy.percentile(times, [90, 95, 99])
             print(
                 f"penalties mean ({numpy.mean(times):.4}s) | "

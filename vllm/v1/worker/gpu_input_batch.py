@@ -910,7 +910,16 @@ class InputBatch:
 
         assert self.prev_req_id_to_index is not None
         sampled_token_ids = None
-        row_idx, col_idx, val_buf = [], [], []
+        # row_idx, col_idx, val_buf = [], [], []
+
+        size = self.token_ids_cpu_tensor.shape[0]
+        row_idx = torch.zeros(size, dtype=torch.long)
+        col_idx = torch.zeros(size, dtype=torch.long)
+        val_buf = torch.zeros(size, dtype=self.token_ids_cpu_tensor.dtype)
+        row_np = row_idx.numpy()
+        col_np = col_idx.numpy()
+        val_np = val_buf.numpy()
+        idx = 0
         for index, req_id in enumerate(self.req_ids):
             prev_index = self.prev_req_id_to_index.get(req_id)
             if prev_index is None:
@@ -927,18 +936,18 @@ class InputBatch:
             # Replace placeholder token id with actual sampled id.
             req_output_token_ids[-1] = sampled_token_ids[prev_index]
 
-            row_idx.append(index)
-            col_idx.append(self.num_computed_tokens_cpu[index])
-            val_buf.append(sampled_token_ids[prev_index])
+            # row_idx.append(index)
+            # col_idx.append(self.num_computed_tokens_cpu[index])
+            # val_buf.append(sampled_token_ids[prev_index])
+            row_np[idx] = index
+            col_np[idx] = self.num_computed_tokens_cpu[index]
+            val_np[idx] = sampled_token_ids[prev_index]
+            idx += 1
 
-        if val_buf:
-            rows = torch.as_tensor(row_idx, device=self.token_ids_cpu_tensor.device, dtype=torch.long)
-            cols = torch.as_tensor(col_idx, device=self.token_ids_cpu_tensor.device, dtype=torch.long)
-            vals = torch.as_tensor(val_buf, device=self.token_ids_cpu_tensor.device, dtype=self.token_ids_cpu_tensor.dtype)
-            self.token_ids_cpu_tensor[rows, cols] = vals
-            # is there a way of vectorizing this copy?
-            # token_index = self.num_computed_tokens_cpu[index]
-            # self.token_ids_cpu_tensor[index, token_index] = sampled_token_ids[prev_index]
+        # rows = torch.from_numpy(row_idx)
+        # cols = torch.from_numpy(col_idx)
+        # vals = torch.from_numpy(val_buf)
+        self.token_ids_cpu_tensor[row_idx, col_idx] = val_buf
 
     @property
     def num_reqs(self) -> int:
