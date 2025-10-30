@@ -4,6 +4,7 @@
 import gc
 import itertools
 import time
+import nvtx
 from collections import defaultdict
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -607,6 +608,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
     def _sync_device(self) -> None:
         torch.cuda.synchronize()
 
+    @nvtx.annotate(color="orange")
     def _update_states(self, scheduler_output: "SchedulerOutput") -> None:
         """Update the cached states and the persistent batch with the scheduler
         output.
@@ -1034,6 +1036,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
 
         return encoder_seq_lens
 
+    @nvtx.annotate(color="orange")
     def _prepare_inputs(
         self, scheduler_output: "SchedulerOutput"
     ) -> tuple[
@@ -2208,6 +2211,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
             model_kwargs,
         )
 
+    @nvtx.annotate(color="orange")
     def _sample(
         self,
         logits: torch.Tensor | None,
@@ -2234,6 +2238,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
         self._update_states_after_model_execute(sampler_output.sampled_token_ids)
         return sampler_output
 
+    @nvtx.annotate(color="orange")
     def _bookkeeping_sync(
         self,
         scheduler_output: "SchedulerOutput",
@@ -2381,6 +2386,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
         finally:
             self.prepare_inputs_event.record()
 
+    @nvtx.annotate(color="orange")
     def _model_forward(
         self,
         input_ids: torch.Tensor | None = None,
@@ -2413,6 +2419,7 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
             **model_kwargs,
         )
 
+    @nvtx.annotate(color="orange")
     @torch.inference_mode()
     def execute_model(
         self,

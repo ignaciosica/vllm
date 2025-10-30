@@ -5,6 +5,7 @@ import itertools
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, overload
+import nvtx
 
 from vllm.distributed.kv_events import KVCacheEvent
 from vllm.logger import init_logger
@@ -216,6 +217,7 @@ class KVCacheManager:
 
         return self.create_kv_cache_blocks(computed_blocks), num_new_computed_tokens
 
+    @nvtx.annotate()
     def allocate_slots(
         self,
         request: Request,
