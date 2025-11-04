@@ -18,28 +18,36 @@ __global__ void apply_repetition_penalties_kernel(
     const bool* __restrict__ output_mask,  // [num_seqs, vocab_size]
     const scalar_t* __restrict__ repetition_penalties,  // [num_seqs]
     const int num_seqs, const int vocab_size, const int tile_size) {
-  // Each block handles one sequence and a tile of vocab
+  __shared__ scalar_t s_penalty[2];
+
   const int seq_idx = blockIdx.x;
   if (seq_idx >= num_seqs) return;
+
+  if (threadIdx.x == 0) {
+    const scalar_t penalty = repetition_penalties[seq_idx];
+    s_penalty[1] = static_cast<scalar_t>(1.0) / penalty;
+    s_penalty[0] = penalty;
+  }
 
   const int tile_start = blockIdx.y * tile_size;
   const int tile_end = min(tile_start + tile_size, vocab_size);
 
-  // Load repetition penalty for this sequence
-  const scalar_t penalty = repetition_penalties[seq_idx];
+  __syncthreads();
 
-  // Each thread processes multiple vocab items within the tile
+  const scalar_t penalty_val = s_penalty[0];
+  const scalar_t inv_penalty_val = s_penalty[1];
+
   for (int vocab_idx = tile_start + threadIdx.x; vocab_idx < tile_end;
        vocab_idx += blockDim.x) {
     const int64_t idx = static_cast<int64_t>(seq_idx) * vocab_size + vocab_idx;
     const bool is_repeated = prompt_mask[idx] || output_mask[idx];
     if (is_repeated) {
-      scalar_t logit = logits[idx];
-      if (logit > 0) {
-        logits[idx] = logit / penalty;
-      } else {
-        logits[idx] = logit * penalty;
-      }
+      const scalar_t logit = logits[idx];
+
+      const scalar_t penalty_factor =
+          (logit > 0) ? inv_penalty_val : penalty_val;
+
+      logits[idx] = logit * penalty_factor;
     }
   }
 }
