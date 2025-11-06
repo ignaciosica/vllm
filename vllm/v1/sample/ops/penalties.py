@@ -5,7 +5,7 @@ import torch, nvtx, time, numpy, os
 from vllm.model_executor.layers.utils import apply_penalties
 from vllm.utils.torch_utils import make_tensor_with_pad
 
-times = numpy.array([])
+# times = numpy.array([])
 
 DEBUG = int(os.getenv("DEBUG", 0))
 
@@ -23,8 +23,8 @@ def apply_all_penalties(
     """
     Applies presence, frequency and repetition penalties to the logits.
     """
-    global times
-    start = time.perf_counter()
+    # global times
+    # start = time.perf_counter()
     _, vocab_size = logits.shape
     reqs, reqs_len = prompt_token_ids.shape
 
@@ -51,14 +51,14 @@ def apply_all_penalties(
         frequency_penalties,
         repetition_penalties,
     )
-    if DEBUG:
-        times = numpy.append(times, time.perf_counter() - start)
-        if len(times) % 512 == 0:
-            p90, p95, p99 = numpy.percentile(times, [90, 95, 99])
-            print(
-                f"penalties mean ({numpy.mean(times):.4}s) | "
-                f"p90 ({p90:.4}) p95 ({p95:.4}) p99 ({p99:.4})"
-            )
+    # if DEBUG:
+    #     times = numpy.append(times, time.perf_counter() - start)
+    #     if len(times) % 512 == 0:
+    #         p90, p95, p99 = numpy.percentile(times, [90, 95, 99])
+    #         print(
+    #             f"penalties mean ({numpy.mean(times):.4}s) | "
+    #             f"p90 ({p90:.4}) p95 ({p95:.4}) p99 ({p99:.4})"
+    #         )
     return ret
 
 
