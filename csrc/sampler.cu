@@ -44,6 +44,7 @@ __global__ void apply_repetition_penalties_kernel(
   }
 }
 
+
 static inline __device__ uint16_t extractBinIdx(float x) {
   union {
     __half h;

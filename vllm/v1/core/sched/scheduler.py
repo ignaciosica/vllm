@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import itertools
 import time
+import nvtx
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import Any
@@ -186,6 +187,7 @@ class Scheduler(SchedulerInterface):
         )
         self.use_pp = self.parallel_config.pipeline_parallel_size > 1
 
+    @nvtx.annotate()
     def schedule(self) -> SchedulerOutput:
         # NOTE(woosuk) on the scheduling algorithm:
         # There's no "decoding phase" nor "prefill phase" in the scheduler.
@@ -695,6 +697,7 @@ class Scheduler(SchedulerInterface):
             self._update_after_schedule(scheduler_output)
         return scheduler_output
 
+    @nvtx.annotate()
     def _update_after_schedule(
         self,
         scheduler_output: SchedulerOutput,
@@ -726,6 +729,7 @@ class Scheduler(SchedulerInterface):
         # it will also affect the scheduler output.
         self.finished_req_ids = set()
 
+    @nvtx.annotate()
     def _make_cached_request_data(
         self,
         running_reqs: list[Request],
@@ -946,6 +950,7 @@ class Scheduler(SchedulerInterface):
         )
         return GrammarOutput(structured_output_request_ids, bitmask)
 
+    @nvtx.annotate()
     def update_from_output(
         self,
         scheduler_output: SchedulerOutput,

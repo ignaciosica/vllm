@@ -7,6 +7,7 @@ from typing import cast
 
 import numpy as np
 import torch
+import nvtx
 
 from vllm.lora.request import LoRARequest
 from vllm.multimodal.inputs import MultiModalFeatureSpec
@@ -902,11 +903,12 @@ class InputBatch:
             self.sampled_token_ids_cpu = None
             self.async_copy_ready_event = None
 
+    @nvtx.annotate(color="yellow")
     def update_async_output_token_ids(self) -> None:
         """
         In async scheduling case, update output_token_ids in sampling metadata
         from prior steps sampled token ids once they've finished copying to CPU.
-        This is called right before they are needed by the logits processors.
+        This is called rig ht before they are needed by the logits processors.
         """
         output_token_ids = self.sampling_metadata.output_token_ids
         if self.sampled_token_ids_cpu is None or not output_token_ids:
@@ -930,6 +932,7 @@ class InputBatch:
                 sampled_token_ids = self.sampled_token_ids_cpu.squeeze(-1).tolist()
             # Replace placeholder token id with actual sampled id.
             req_output_token_ids[-1] = sampled_token_ids[prev_index]
+            self.token_ids_cpu[index, self.num_computed_tokens_cpu[index]] = sampled_token_ids[prev_index]
 
     @property
     def num_reqs(self) -> int:

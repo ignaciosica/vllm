@@ -15,6 +15,7 @@ from typing import Any, TypeVar, cast
 
 import msgspec
 import zmq
+import nvtx
 
 from vllm.config import ParallelConfig, VllmConfig
 from vllm.distributed import stateless_destroy_torch_distributed_process_group
@@ -347,6 +348,7 @@ class EngineCore:
             if draft_token_ids is not None:
                 self.scheduler.update_draft_token_ids(draft_token_ids)
 
+    @nvtx.annotate(color="orange")
     def step_with_batch_queue(
         self,
     ) -> tuple[dict[int, EngineCoreOutputs] | None, bool]:
@@ -897,6 +899,7 @@ class EngineCoreProc(EngineCore):
             req = self.input_queue.get_nowait()
             self._handle_client_request(*req)
 
+    @nvtx.annotate(color="orange")
     def _process_engine_step(self) -> bool:
         """Called only when there are unfinished local requests."""
 
