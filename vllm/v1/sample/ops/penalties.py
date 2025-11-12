@@ -15,6 +15,7 @@ def apply_all_penalties(
     frequency_penalties: torch.Tensor,
     repetition_penalties: torch.Tensor,
     output_token_ids: list[list[int]],
+    token_ids_cpu: torch.Tensor,
 ) -> torch.Tensor:
     """
     Applies presence, frequency and repetition penalties to the logits.
