@@ -828,7 +828,9 @@ class InputBatch:
             allowed_token_ids_mask=allowed_token_ids_mask,
             bad_words_token_ids=self.bad_words_token_ids,
             logitsprocs=self.logitsprocs,
-            token_ids_cpu=self.token_ids_cpu,
+            token_ids_cpu_tensor=self.token_ids_cpu_tensor,
+            num_tokens=self.num_tokens,
+            num_reqs=self.num_reqs,
         )
 
     def get_pooling_params(self) -> list[PoolingParams]:

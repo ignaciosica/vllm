@@ -77,7 +77,7 @@ def apply_penalties(
     repetition_penalties: The repetition penalties of shape (num_seqs, )
     """
     num_seqs, vocab_size = logits.shape
-    _, prompt_mask = get_token_bin_counts_and_mask(
+    prompt_bin_counts, prompt_mask = get_token_bin_counts_and_mask(
         prompt_tokens_tensor, vocab_size, num_seqs
     )
     output_bin_counts, output_mask = get_token_bin_counts_and_mask(
@@ -89,10 +89,13 @@ def apply_penalties(
 
     apply_repetition_penalties(logits, prompt_mask, output_mask, repetition_penalties)
 
+    total_bin_counts = prompt_bin_counts + output_bin_counts
+    total_mask = (prompt_mask | output_mask).to(logits.dtype)
+
     # We follow the definition in OpenAI API.
     # Refer to https://platform.openai.com/docs/api-reference/parameter-details
-    logits -= frequency_penalties.unsqueeze(dim=1) * output_bin_counts
-    logits -= presence_penalties.unsqueeze(dim=1) * output_mask
+    logits -= frequency_penalties.unsqueeze(dim=1) * total_bin_counts
+    logits -= presence_penalties.unsqueeze(dim=1) * total_mask
     return logits
 
 
