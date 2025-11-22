@@ -109,7 +109,7 @@ class InputBatch:
             (max_num_reqs, max_model_len),
             device="cpu",
             dtype=torch.int32,
-            pin_memory=False,
+            pin_memory=True,
         )
         self.token_ids_cpu = self.token_ids_cpu_tensor.numpy()
         self.is_token_ids_tensor = torch.zeros(
@@ -837,6 +837,9 @@ class InputBatch:
             allowed_token_ids_mask=allowed_token_ids_mask,
             bad_words_token_ids=self.bad_words_token_ids,
             logitsprocs=self.logitsprocs,
+            token_ids_cpu_tensor=self.token_ids_cpu_tensor,
+            num_tokens=self.num_tokens,
+            num_reqs=self.num_reqs,
         )
 
     def get_pooling_params(self) -> list[PoolingParams]:
@@ -939,6 +942,7 @@ class InputBatch:
                 sampled_token_ids = self.sampled_token_ids_cpu.squeeze(-1).tolist()
             # Replace placeholder token id with actual sampled id.
             req_output_token_ids[-1] = sampled_token_ids[prev_index]
+            self.token_ids_cpu[index, self.num_computed_tokens_cpu[index]] = sampled_token_ids[prev_index]
 
     @property
     def num_reqs(self) -> int:
