@@ -316,4 +316,7 @@ class Sampler(nn.Module):
             sampling_metadata.frequency_penalties,
             sampling_metadata.repetition_penalties,
             output_token_ids,
+            sampling_metadata.token_ids_cpu_tensor,
+            sampling_metadata.num_tokens,
+            sampling_metadata.num_reqs,
         )

@@ -15,29 +15,36 @@ def apply_all_penalties(
     frequency_penalties: torch.Tensor,
     repetition_penalties: torch.Tensor,
     output_token_ids: list[list[int]],
+    token_ids_cpu_tensor: torch.Tensor,
+    num_tokens,
+    num_reqs: int,
 ) -> torch.Tensor:
     """
     Applies presence, frequency and repetition penalties to the logits.
     """
     _, vocab_size = logits.shape
-    output_tokens_t = _convert_to_tensors(output_token_ids, vocab_size, logits.device)
 
+    num_tokens_cpu_tensor = torch.tensor(num_tokens)
+    max_num_computed = torch.max(num_tokens_cpu_tensor[:num_reqs])
+    token_ids_slice = token_ids_cpu_tensor[:num_reqs, :max_num_computed]
+    idx = torch.arange(max_num_computed).expand(num_reqs, max_num_computed)
+    token_ids_slice.masked_fill_(idx > num_tokens_cpu_tensor[:num_reqs].unsqueeze(1), vocab_size)
     # In the async scheduling case, rows that won't have penalties applied may contain
     # -1 placeholder token ids. We must replace these with valid token ids so that the
     # scatter done in apply_penalties is valid.
     # NOTE(nick): The penalties implementation is currently quite inefficient and
     # will be reworked anyhow.
-    output_tokens_t.masked_fill_(output_tokens_t == -1, vocab_size)
+    token_ids_slice.masked_fill_(token_ids_slice == -1, vocab_size)
+    token_ids_dev_tensor = token_ids_slice.to(logits.device, dtype=torch.int64, non_blocking=True)
 
     return apply_penalties(
         logits,
-        prompt_token_ids,
-        output_tokens_t,
+        token_ids_dev_tensor,
+        token_ids_dev_tensor,
         presence_penalties,
         frequency_penalties,
         repetition_penalties,
     )
-
 
 def _convert_to_tensors(
     output_token_ids: list[list[int]], vocab_size: int, device: torch.device
